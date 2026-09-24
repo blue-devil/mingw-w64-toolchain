@@ -21,6 +21,10 @@ src/
 logs/
 
 README.EN.md
+.ruff*
+.claude
+PLAN*
+PROMPT*
 
 #
 # macOS gitignore start
