@@ -1,0 +1,23 @@
+pkgbase = mingw-w64-ncurses
+	pkgdesc = System V Release 4.0 curses emulation library (mingw-w64)
+	pkgver = 6.6
+	pkgrel = 1
+	url = https://www.gnu.org/software/ncurses/
+	arch = any
+	license = MIT
+	makedepends = mingw-w64-configure
+	makedepends = mingw-w64-gcc
+	makedepends = mingw-w64-pkg-config
+	depends = mingw-w64-crt
+	depends = mingw-w64-regex
+	depends = mingw-w64-libiconv
+	options = !strip
+	options = !buildflags
+	options = staticlibs
+	source = https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.6.tar.gz
+	source = https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.6.tar.gz.sig
+	validpgpkeys = 19882D92DDA4C400C22C0D56CC2AF4472167BE03
+	sha256sums = 355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11
+	sha256sums = SKIP
+
+pkgname = mingw-w64-ncurses

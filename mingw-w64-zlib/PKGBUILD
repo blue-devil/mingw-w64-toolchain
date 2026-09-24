@@ -1,0 +1,48 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-zlib
+pkgver=1.3.2
+pkgrel=2
+pkgdesc="Compression library implementing the deflate compression method found in gzip and PKZIP (mingw-w64)"
+arch=('any')
+url="https://www.zlib.net/"
+license=('Zlib')
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-cmake')
+options=('!strip' '!buildflags' 'staticlibs')
+source=(https://github.com/madler/zlib/releases/download/v$pkgver/zlib-$pkgver.tar.xz{,.asc})
+sha256sums=('d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3'
+            'SKIP')
+validpgpkeys=('5ED46A6721D365587791E2AA783FCD8E58BCAFBA') # Mark Adler <madler@alumni.caltech.edu>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+prepare() {
+  cd zlib-${pkgver}
+  # keep original zlib1.dll runtime name
+  echo 'set_target_properties(zlib PROPERTIES RUNTIME_OUTPUT_NAME zlib1 PREFIX "")' >> CMakeLists.txt
+}
+
+build() {
+  cd zlib-${pkgver}
+  for _target in ${_targets}; do
+    ${_target}-cmake -DZLIB_BUILD_TESTING=OFF -B build-${_target} .
+    cmake --build build-${_target}
+  done
+}
+
+package() {
+  cd zlib-${pkgver}
+  for _target in ${_targets}; do
+    DESTDIR="${pkgdir}" cmake --install build-${_target}
+    rm -r "$pkgdir"/usr/${_target}/share
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+    ln -vrs "$pkgdir"/usr/${_target}/lib/libzs.a "$pkgdir"/usr/${_target}/lib/libz.a
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

@@ -1,0 +1,39 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-cmake
+pkgver=1
+pkgrel=42
+pkgdesc="CMake wrapper for MinGW (mingw-w64)"
+arch=('any')
+url="https://fedoraproject.org/wiki/MinGW"
+license=('GPL-2.0-or-later')
+depends=('cmake' 'mingw-w64-gcc' 'mingw-w64-pkg-config' 'mingw-w64-environment')
+optdepends=('mingw-w64-wine: runtime support')
+source=("mingw-cmake.sh"
+        "toolchain-mingw.cmake")
+sha256sums=('9a9e89d6b70c29c7b9c56763cfefefaa81b466edb93859d60a7c092875e3a701'
+            '18acf0b082477c53f870d77862e8fa85c05af177a565d0a5229d439fc5c01bf0')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  for _target in ${_targets}; do
+    # @PROCESSOR@ is the triplet without its "-w64-mingw32" suffix (12 characters)
+    sed "s|@TRIPLE@|${_target}|g;s|@PROCESSOR@|${_target::-12}|g" toolchain-mingw.cmake > toolchain-${_target}.cmake
+    sed "s|@TRIPLE@|${_target}|g" mingw-cmake.sh > ${_target}-cmake
+  done
+}
+
+package() {
+  install -d "${pkgdir}"/usr/bin
+  install -d "${pkgdir}"/usr/share/mingw
+  for _target in ${_targets}; do
+    install -m644 toolchain-${_target}.cmake "${pkgdir}"/usr/share/mingw/
+    install -m755 ${_target}-cmake "${pkgdir}"/usr/bin/
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

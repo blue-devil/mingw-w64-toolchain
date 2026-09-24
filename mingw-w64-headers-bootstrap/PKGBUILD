@@ -1,0 +1,32 @@
+# Maintainer: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-headers-bootstrap
+pkgver=14.0.0
+pkgrel=1
+pkgdesc="Dummy pthread headers to bootstrap the MinGW-w64 toolchain (replaced by mingw-w64-winpthreads)"
+arch=('any')
+url="https://www.mingw-w64.org"
+license=('LicenseRef-custom')
+groups=('mingw-w64-bootstrap')
+depends=("mingw-w64-headers=${pkgver}")
+conflicts=('mingw-w64-winpthreads')
+options=('!strip' '!emptydirs')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+# Byte-identical to mingw-w64-v${pkgver}/mingw-w64-headers/crt/pthread_*.h
+_dummy='/* Dummy header, which gets overridden, if winpthread library gets installed.  */'
+
+package() {
+  for _target in ${_targets}; do
+    install -d "$pkgdir"/usr/${_target}/include
+    for _header in pthread_signal.h pthread_time.h pthread_unistd.h; do
+      echo "${_dummy}" > "$pkgdir"/usr/${_target}/include/${_header}
+      chmod 644 "$pkgdir"/usr/${_target}/include/${_header}
+    done
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

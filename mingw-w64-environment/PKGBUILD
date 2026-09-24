@@ -1,0 +1,19 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-environment
+pkgver=1
+pkgrel=7
+pkgdesc="Script providing common environment variables and functions for MinGW (mingw-w64)"
+arch=('any')
+url="https://fedoraproject.org/wiki/MinGW"
+license=('BSD')
+source=("mingw-env.sh")
+sha256sums=('b35d6756e27236749991245df416e261461033ca745ed2e2f8dc9c181cc90709')
+
+package() {
+  install -Dm755 mingw-env.sh "${pkgdir}"/usr/bin/mingw-env
+}
+
+# vim: ts=2 sw=2 et:
+

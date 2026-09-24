@@ -1,0 +1,55 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-gmp
+pkgver=6.3.0
+pkgrel=2
+pkgdesc="A free library for arbitrary precision arithmetic (mingw-w64)"
+arch=('any')
+url="https://gmplib.org"
+license=('LGPL-3.0-or-later' 'GPL-2.0-or-later')
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-configure' 'lzip')
+options=('staticlibs' '!strip' '!buildflags')
+source=(https://gmplib.org/download/gmp/gmp-$pkgver.tar.lz{,.sig}
+        gmp-gcc-15.patch)
+validpgpkeys=('343C2FF0FBEE5EC2EDBEF399F3599FF828C67298') # Niels Möller <nisse@lysator.liu.se>
+sha256sums=('be5c908a7a836c3a9bd9d62aa58563c5e9e7fef94c43a7f42dbc35bb6d02733c'
+            'SKIP'
+            'fd0f1b48dbe72413efbd9c45f1ca7013d555f46c578446ce3ba202e3a9b96c6c')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+prepare() {
+  cd gmp-${pkgver}
+  # configure test needs a complete prototype under C23 (GCC >= 15); patch from Arch's gmp package
+  patch -p1 -i "${srcdir}"/gmp-gcc-15.patch
+  autoreconf -vif
+}
+
+build() {
+  cd gmp-${pkgver}
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    # "cannot build both static and DLL, since gmp.h is different for each"
+    CC_FOR_BUILD=gcc ${_target}-configure \
+      --enable-cxx=detect \
+      --disable-static
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}"/gmp-${pkgver}/build-${_target}
+    make DESTDIR="$pkgdir" install
+    rm -r "$pkgdir"/usr/${_target}/share
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

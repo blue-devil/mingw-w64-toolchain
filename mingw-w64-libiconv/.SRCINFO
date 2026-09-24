@@ -1,0 +1,19 @@
+pkgbase = mingw-w64-libiconv
+	pkgdesc = GNU libiconv character set conversion library (mingw-w64)
+	pkgver = 1.18
+	pkgrel = 1
+	url = https://www.gnu.org/software/libiconv/
+	arch = any
+	license = LGPL-2.1-or-later
+	makedepends = mingw-w64-configure
+	depends = mingw-w64-crt
+	options = !strip
+	options = !buildflags
+	options = staticlibs
+	source = https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz
+	source = https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz.sig
+	validpgpkeys = 9001B85AF9E1B83DF1BDA942F5BE8B267C6A406D
+	sha256sums = 3b08f5f4f9b4eb82f151a7040bfd6fe6c6fb922efe4b1659c66ea933276965e8
+	sha256sums = SKIP
+
+pkgname = mingw-w64-libiconv

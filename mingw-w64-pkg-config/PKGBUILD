@@ -1,0 +1,34 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-pkg-config
+pkgver=2
+pkgrel=4
+pkgdesc="Support pkg-config script for pkg-config powered cross-compiling with mingw-w64"
+arch=('any')
+url="https://pkg-config.freedesktop.org/"
+license=('zlib')
+depends=('pkg-config' 'mingw-w64-crt')
+source=('mingw-pkgconfig.sh')
+install='mingw-w64-pkg-config.install'
+sha256sums=('44d34883ea310396b88e25a1b20f0bb9c96d0ba4bf2501690ebfd4f8a31dc34b')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  for _target in ${_targets}; do
+    sed "s|@TRIPLE@|${_target}|g" mingw-pkgconfig.sh > ${_target}-pkg-config
+  done
+}
+
+package() {
+  # This indeed has to go to the "normal" directory tree
+  install -d "${pkgdir}"/usr/bin
+  for _target in ${_targets}; do
+    install -m755 ${_target}-pkg-config "${pkgdir}"/usr/bin
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

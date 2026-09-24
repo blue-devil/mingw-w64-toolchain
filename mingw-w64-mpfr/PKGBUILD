@@ -1,0 +1,50 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-mpfr
+_pkgver=4.2.2
+pkgver=$_pkgver
+pkgrel=2
+pkgdesc="Multiple-precision floating-point library (mingw-w64)"
+arch=('any')
+url="https://www.mpfr.org"
+license=('LGPL-3.0-or-later')
+makedepends=('mingw-w64-configure')
+depends=('mingw-w64-gmp')
+options=('staticlibs' '!strip' '!buildflags')
+source=(https://ftp.gnu.org/gnu/mpfr/mpfr-${_pkgver}.tar.xz{,.sig})
+sha256sums=('b67ba0383ef7e8a8563734e2e889ef5ec3c3b898a01d00fa0a6869ad81c6ce01'
+            'SKIP')
+validpgpkeys=('07F3DBBECC1A39605078094D980C197698C3739D'
+              'A534BE3F83E241D918280AEB5831D11A0D4DB02A') # Vincent Lefevre <vincent@vinc17.net>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "$srcdir"/mpfr-${_pkgver}
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    # keep configure from trying to run test programs through wine
+    export WINEARCH=foo
+    ${_target}-configure \
+      --enable-shared \
+      --disable-static \
+      --enable-thread-safe
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/mpfr-${_pkgver}/build-${_target}"
+    make DESTDIR="$pkgdir" install
+    rm -r "$pkgdir"/usr/${_target}/share
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

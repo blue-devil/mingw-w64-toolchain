@@ -1,0 +1,14 @@
+pkgbase = mingw-w64-headers-bootstrap
+	pkgdesc = Dummy pthread headers to bootstrap the MinGW-w64 toolchain (replaced by mingw-w64-winpthreads)
+	pkgver = 14.0.0
+	pkgrel = 1
+	url = https://www.mingw-w64.org
+	arch = any
+	groups = mingw-w64-bootstrap
+	license = LicenseRef-custom
+	depends = mingw-w64-headers=14.0.0
+	conflicts = mingw-w64-winpthreads
+	options = !strip
+	options = !emptydirs
+
+pkgname = mingw-w64-headers-bootstrap

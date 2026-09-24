@@ -1,0 +1,22 @@
+pkgbase = mingw-w64-libgnurx
+	pkgdesc = regex functionality from glibc (mingw-w64)
+	pkgver = 2.5.1
+	pkgrel = 6
+	url = https://sourceforge.net/projects/mingw/
+	arch = any
+	license = LGPL-2.1-or-later
+	makedepends = mingw-w64-configure
+	depends = mingw-w64-crt
+	provides = mingw-w64-regex
+	conflicts = mingw-w64-regex
+	options = !buildflags
+	options = !strip
+	options = staticlibs
+	source = https://download.sourceforge.net/mingw/Other/UserContributed/regex/mingw-regex-2.5.1/mingw-libgnurx-2.5.1-src.tar.gz
+	source = mingw-w64-libgnurx-honor-destdir.patch
+	source = stdbool.patch
+	sha256sums = 7147b7f806ec3d007843b38e19f42a5b7c65894a57ffc297a76b0dcd5f675d76
+	sha256sums = 7db74e71a2612e1720f68acea7c9bc24873be1d533c1eed4db58c4fd923e1ec1
+	sha256sums = 101add52fa902a99fef470bd6cba26d39eb0a67f59db7706ff710036dcb968c6
+
+pkgname = mingw-w64-libgnurx

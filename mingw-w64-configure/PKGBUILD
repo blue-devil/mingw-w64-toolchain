@@ -1,0 +1,32 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-configure
+pkgver=0.1.1
+pkgrel=11
+pkgdesc="configure wrapper for MinGW (mingw-w64)"
+arch=('any')
+url="https://fedoraproject.org/wiki/MinGW"
+license=('GPL')
+depends=('mingw-w64-gcc' 'mingw-w64-pkg-config' 'mingw-w64-environment')
+source=("mingw-configure.sh")
+sha256sums=('802c5524bddacd3b4a3f4817a788a293d323a7ea390256ccbd2614274d3d686e')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  for _target in ${_targets}; do
+    sed "s|@TRIPLE@|${_target}|g" mingw-configure.sh > ${_target}-configure
+  done
+}
+
+package() {
+  install -d "${pkgdir}"/usr/bin
+  for _target in ${_targets}; do
+    install -m755 ${_target}-configure "${pkgdir}"/usr/bin/
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

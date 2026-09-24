@@ -1,0 +1,81 @@
+# Maintainer: Martchus < martchus at gmx dot net >
+# Contributor: pingplug < aur at pingplug dot me >
+# Contributor: Schala Zeal < schalaalexiazeal at gmail dot com >
+# Contributor: ant32 < antreimer at gmail dot com >
+# Contributor: Filip Brcic < brcha at gna dot org >
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+_pkgver=1.1.1w
+
+pkgname=mingw-w64-openssl-1.1
+pkgver=${_pkgver/[a-z]/.${_pkgver//[0-9.]/}}
+pkgrel=1
+pkgdesc="The Open Source toolkit for Secure Sockets Layer and Transport Layer Security (mingw-w64)"
+arch=('any')
+url="https://www.openssl.org"
+license=('BSD')
+depends=('mingw-w64-zlib')
+makedepends=('mingw-w64-gcc'
+             'mingw-w64-environment'
+             'perl')
+conflicts=('mingw-w64-openssl<3')
+options=('!strip' 'staticlibs' '!buildflags' '!lto')
+source=("https://www.openssl.org/source/openssl-${_pkgver}.tar.gz"{,.asc})
+sha256sums=('cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8'
+            'SKIP')
+validpgpkeys=('8657ABB260F056B1E5190839D9C4D26D0E604491'  # Matt Caswell <matt@openssl.org>
+              '7953AC1FBC3DC8B3B292393ED5E9E43F7DF9EE8C'  # Richard Levitte <richard@levitte.org>
+              'A21FAB74B0088AA361152586B8EF1A6BA9DA2D5C'  # Tomáš Mráz <tomas@openssl.org>
+              'EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5') # OpenSSL OMC <openssl-omc@openssl.org>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "${srcdir}/openssl-${_pkgver}"
+  for _target in ${_targets}; do
+    source mingw-env ${_target}
+    # conflict with --cross-compile-prefix
+    unset CC
+    unset CXX
+    mkdir -p "${srcdir}/build-${_target}" && cp -a "${srcdir}/openssl-${_pkgver}/"* "${srcdir}/build-${_target}" && cd "${srcdir}/build-${_target}"
+    _mingw=mingw
+    [ "${_target}" = 'x86_64-w64-mingw32' ] && _mingw=mingw64
+    ./Configure \
+      --prefix=/usr/${_target} \
+      --cross-compile-prefix=${_target}- \
+      --libdir=lib/openssl-1.1 \
+      -DOPENSSL_NO_CAPIENG \
+      ${_mingw} \
+      threads \
+      shared \
+      no-ssl3-method \
+      zlib-dynamic \
+      "${CFLAGS}"
+    make
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/build-${_target}"
+    make -j1 DESTDIR="${pkgdir}" install_sw
+
+    # Move some files around
+    install -m755 -d "$pkgdir/usr/${_target}/include/openssl-1.1"
+    mv "$pkgdir/usr/${_target}/include/openssl" "$pkgdir/usr/${_target}/include/openssl-1.1/"
+    mv "$pkgdir/usr/${_target}/bin/openssl.exe" "$pkgdir/usr/${_target}/bin/openssl-1.1.exe"
+    rm "$pkgdir/usr/${_target}/bin/c_rehash"
+    install -m644 ms/applink.c "${pkgdir}/usr/${_target}/include/openssl-1.1/"
+
+    # Update includedir in .pc files
+    sed -e 's|/include$|/include/openssl-1.1|' -i "$pkgdir"/usr/${_target}/lib/openssl-1.1/pkgconfig/*.pc
+
+    find "${pkgdir}/usr/${_target}" -name '*.exe' -exec ${_target}-strip {} \;
+    find "${pkgdir}/usr/${_target}" -name '*.dll' -exec ${_target}-strip --strip-unneeded {} \;
+    find "${pkgdir}/usr/${_target}" -name '*.a' -o -name '*.dll' | xargs ${_target}-strip -g
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

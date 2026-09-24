@@ -1,0 +1,44 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-libiconv
+pkgver=1.18
+pkgrel=1
+pkgdesc="GNU libiconv character set conversion library (mingw-w64)"
+arch=('any')
+url="https://www.gnu.org/software/libiconv/"
+license=('LGPL-2.1-or-later')
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-configure')
+options=('!strip' '!buildflags' 'staticlibs')
+source=("https://ftp.gnu.org/pub/gnu/libiconv/libiconv-$pkgver.tar.gz"{,.sig})
+sha256sums=('3b08f5f4f9b4eb82f151a7040bfd6fe6c6fb922efe4b1659c66ea933276965e8'
+            'SKIP')
+validpgpkeys=('9001B85AF9E1B83DF1BDA942F5BE8B267C6A406D') # Bruno Haible (Open Source Development) <bruno@clisp.org>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "$srcdir/libiconv-$pkgver"
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    ${_target}-configure --disable-nls
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/libiconv-${pkgver}/build-${_target}"
+    make DESTDIR="$pkgdir" install -j1
+    rm -r "$pkgdir"/usr/${_target}/share/
+    rm "$pkgdir"/usr/${_target}/bin/*.exe
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

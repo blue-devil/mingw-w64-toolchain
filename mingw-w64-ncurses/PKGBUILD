@@ -1,0 +1,79 @@
+# Maintainer: Patrick Northon <northon_patrick3@yahoo.ca>
+# Contributor: Andrew Sun <adsun701@gmail.com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+_pkgname=ncurses
+pkgname=mingw-w64-${_pkgname}
+pkgver=6.6
+pkgrel=1
+pkgdesc='System V Release 4.0 curses emulation library (mingw-w64)'
+arch=('any')
+url='https://www.gnu.org/software/ncurses/'
+license=('MIT')
+makedepends=('mingw-w64-configure' 'mingw-w64-gcc' 'mingw-w64-pkg-config')
+depends=('mingw-w64-crt' 'mingw-w64-regex' 'mingw-w64-libiconv')
+options=('!strip' '!buildflags' 'staticlibs')
+source=("https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${pkgver}.tar.gz"{,.sig})
+sha256sums=('355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11'
+            'SKIP')
+validpgpkeys=('19882D92DDA4C400C22C0D56CC2AF4472167BE03') # Thomas Dickey <dickey@invisible-island.net>
+
+_srcdir="${_pkgname}-${pkgver}"
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+prepare() {
+  cd "${_srcdir}"
+  sed -i 's/cross_compiling=maybe/cross_compiling=yes/' configure
+}
+
+build() {
+  cd "${_srcdir}"
+  # ncurses 6.6 is not C23-clean; GCC 15+ defaults to C23
+  export CFLAGS+=' -std=gnu17'
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    LIBS="-lgnurx -liconv" ${_target}-configure \
+      --without-ada \
+      --with-cxx \
+      --with-cxx-shared \
+      --with-shared \
+      --with-normal \
+      --without-pthread \
+      --enable-pc-files \
+      --disable-rpath \
+      --enable-colorfgbg \
+      --enable-ext-colors \
+      --enable-ext-mouse \
+      --disable-symlinks \
+      --enable-warnings \
+      --enable-assertions \
+      --disable-home-terminfo \
+      --enable-database \
+      --enable-sp-funcs \
+      --enable-term-driver \
+      --enable-interop \
+      --enable-widec \
+      --without-manpages \
+      --without-tests \
+      --without-debug \
+      --disable-stripping \
+      --program-prefix=
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/${_srcdir}/build-${_target}"
+    make DESTDIR="${pkgdir}" install
+    [[ -d "${pkgdir}/usr/lib" ]] && rm -rf "${pkgdir}/usr/lib"
+    find "$pkgdir/usr/${_target}" -name '*.exe' -exec ${_target}-strip {} \;
+    find "$pkgdir/usr/${_target}" -name '*.dll' -exec ${_target}-strip --strip-unneeded {} \;
+    find "$pkgdir/usr/${_target}" -name '*.a' -o -name '*.dll' | xargs ${_target}-strip -g
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

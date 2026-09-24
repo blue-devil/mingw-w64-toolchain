@@ -1,0 +1,97 @@
+# Maintainer: Patrick Northon <northon_patrick3@yahoo.ca>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-gdb
+pkgver=17.2
+pkgrel=1
+pkgdesc="The GNU Debugger, Windows-hosted gdb.exe with TUI and static gdbserver.exe (mingw-w64)"
+arch=('any')
+url="https://www.gnu.org/software/gdb/"
+license=('GPL-3.0-or-later' 'LGPL-3.0-or-later')
+depends=('mingw-w64-expat' 'mingw-w64-zlib' 'mingw-w64-mpfr' 'mingw-w64-ncurses')
+makedepends=('mingw-w64-configure' 'texinfo')
+options=('staticlibs' '!buildflags' '!strip')
+source=("https://ftp.gnu.org/gnu/gdb/gdb-${pkgver}.tar.xz"{,.sig})
+sha256sums=('1c036c0d72e4b3d1fb5c94c88632add6f9d76f4d7c4d2ea793c12a9f19a3228c'
+            'SKIP')
+validpgpkeys=('F40ADB902B24264AA42E50BF92EDB04BFF325CF3') # Joel Brobecker <brobecker@adacore.com>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+prepare() {
+  cd "$srcdir/gdb-$pkgver"
+  # https://sourceware.org/bugzilla/show_bug.cgi?id=27657 (gnulib needs bcrypt)
+  sed -i "s|\$(WIN32LIBS) \$(LIBGNU)|\$(WIN32LIBS) \$(LIBGNU) -lbcrypt|g" gdb/Makefile.in
+  # libiberty's configure tests headers with "$CPP $CPPFLAGS"; _FORTIFY_SOURCE
+  # warns without optimisation and breaks those tests (same hack as MSYS2)
+  sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
+}
+
+build() {
+  cd "$srcdir/gdb-$pkgver"
+  for _target in ${_targets}; do
+    _ncurses_inc=""
+    for _d in ncursesw ncurses; do
+      [[ -d /usr/${_target}/include/${_d} ]] && _ncurses_inc+=" -I/usr/${_target}/include/${_d}"
+    done
+    _extra_ldflags=""
+    [[ ${_target} == i686-w64-mingw32 ]] && _extra_ldflags=" -Wl,--large-address-aware"
+
+    # 1. gdb.exe (TUI, dynamic against the mingw DLLs)
+    mkdir -p build-${_target} && pushd build-${_target}
+    CPPFLAGS="${CPPFLAGS}${_ncurses_inc}" \
+    CXXFLAGS="${CXXFLAGS}${_ncurses_inc} -Wno-format-security" \
+    LDFLAGS="${LDFLAGS}${_extra_ldflags}" \
+    ${_target}-configure \
+      --disable-gdbserver \
+      --enable-tui \
+      --with-curses \
+      --disable-source-highlight \
+      --disable-nls \
+      --disable-werror \
+      --disable-sim \
+      --disable-win32-registry \
+      --disable-rpath \
+      --with-expat \
+      --with-system-zlib \
+      --with-gmp=/usr/${_target} \
+      --with-mpfr=/usr/${_target} \
+      --without-python \
+      --enable-lto ..
+    make
+    popd
+
+    # 2. gdbserver.exe, fully static (only depends on Windows system DLLs)
+    mkdir -p build-gdbserver-${_target} && pushd build-gdbserver-${_target}
+    CXXFLAGS="${CXXFLAGS} -Wno-format-security" \
+    LDFLAGS="${LDFLAGS} -static${_extra_ldflags}" \
+    ${_target}-configure \
+      --disable-gdb \
+      --enable-gdbserver \
+      --disable-nls \
+      --disable-werror \
+      --disable-sim \
+      --disable-win32-registry \
+      --disable-rpath \
+      --without-python ..
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "$srcdir"/gdb-${pkgver}/build-${_target}
+    make install DESTDIR="$pkgdir"
+    cd "$srcdir"/gdb-${pkgver}/build-gdbserver-${_target}
+    make install DESTDIR="$pkgdir"
+    # bfd/opcodes headers and libraries, manuals: not wanted in the cross prefix
+    rm -rf "$pkgdir"/usr/${_target}/share/{man,info}
+    rm -rf "$pkgdir"/usr/${_target}/{lib,include}
+    ${_target}-strip "$pkgdir"/usr/${_target}/bin/*.exe
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

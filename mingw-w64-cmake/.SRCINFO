@@ -1,0 +1,18 @@
+pkgbase = mingw-w64-cmake
+	pkgdesc = CMake wrapper for MinGW (mingw-w64)
+	pkgver = 1
+	pkgrel = 42
+	url = https://fedoraproject.org/wiki/MinGW
+	arch = any
+	license = GPL-2.0-or-later
+	depends = cmake
+	depends = mingw-w64-gcc
+	depends = mingw-w64-pkg-config
+	depends = mingw-w64-environment
+	optdepends = mingw-w64-wine: runtime support
+	source = mingw-cmake.sh
+	source = toolchain-mingw.cmake
+	sha256sums = 9a9e89d6b70c29c7b9c56763cfefefaa81b466edb93859d60a7c092875e3a701
+	sha256sums = 18acf0b082477c53f870d77862e8fa85c05af177a565d0a5229d439fc5c01bf0
+
+pkgname = mingw-w64-cmake
