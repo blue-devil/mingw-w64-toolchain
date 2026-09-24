@@ -1,0 +1,61 @@
+# Maintainer: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-bzip2
+pkgver=1.0.8
+pkgrel=1
+pkgdesc="A high-quality data compression program (mingw-w64)"
+arch=('any')
+url="https://sourceware.org/bzip2/"
+license=('bzip2-1.0.6')
+makedepends=('mingw-w64-configure')
+depends=('mingw-w64-crt')
+options=('!strip' '!buildflags' 'staticlibs')
+source=("https://sourceware.org/pub/bzip2/bzip2-${pkgver}.tar.gz"{,.sig}
+        "bzip2-1.0.5-autoconfiscated.patch"
+        "bzip2-use-cdecl-calling-convention.patch")
+sha256sums=('ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269'
+            'SKIP'
+            '7daaca73a46af4636843d1d13bca9cec6e38c0932142a420ad3500098a90db11'
+            '8f8f0b65417fe892152e1f0a4f75090d2ef1845d5a611c3c94493704d53452ef')
+validpgpkeys=('EC3CFE88F6CA0788774F5C1D1AA44BE649DE760A') # Mark Wielaard <mark@klomp.org>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+prepare() {
+  cd "$srcdir/bzip2-$pkgver"
+  rm -f autogen.sh README.autotools configure.ac Makefile.am bzip2.pc.in
+  patch -p1 -i "$srcdir/"bzip2-1.0.5-autoconfiscated.patch
+  patch bzlib.h < "$srcdir/"bzip2-use-cdecl-calling-convention.patch
+  # the autotools patch dates from 1.0.6; report the real version in bzip2.pc
+  sed -i "/^AC_INIT(/s/\[1\.0\.6\]/[${pkgver}]/" configure.ac
+  grep -q "AC_INIT(\[bzip2\], \[${pkgver}\]" configure.ac
+  sh autogen.sh
+}
+
+build() {
+  cd "$srcdir/bzip2-$pkgver"
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    ${_target}-configure
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/bzip2-${pkgver}/build-${_target}"
+    make DESTDIR="$pkgdir" install
+    rm -r "$pkgdir/usr/${_target}/share"
+    rm "$pkgdir/usr/${_target}/bin/bz"{diff,grep,more}
+    rm "$pkgdir"/usr/${_target}/bin/*.exe
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+  done
+  install -Dm644 "$srcdir/bzip2-$pkgver/COPYING" "$pkgdir/usr/share/licenses/$pkgname/COPYING"
+}
+
+# vim: ts=2 sw=2 et:
+

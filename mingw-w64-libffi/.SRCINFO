@@ -1,0 +1,16 @@
+pkgbase = mingw-w64-libffi
+	pkgdesc = Portable foreign function interface library (mingw-w64)
+	pkgver = 3.7.1
+	pkgrel = 1
+	url = https://sourceware.org/libffi
+	arch = any
+	license = MIT
+	makedepends = mingw-w64-configure
+	depends = mingw-w64-crt
+	options = staticlibs
+	options = !buildflags
+	options = !strip
+	source = https://github.com/libffi/libffi/releases/download/v3.7.1/libffi-3.7.1.tar.gz
+	sha256sums = d5e9a6638ddbd2513ddb54518eb67e4bbe6fa707bcc01c10f6212f0a088d819d
+
+pkgname = mingw-w64-libffi

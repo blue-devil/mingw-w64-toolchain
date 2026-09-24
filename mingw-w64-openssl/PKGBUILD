@@ -1,0 +1,75 @@
+# Maintainer: pingplug < aur at pingplug dot me >
+# Contributor: Schala Zeal < schalaalexiazeal at gmail dot com >
+# Contributor: ant32 < antreimer at gmail dot com >
+# Contributor: Filip Brcic < brcha at gna dot org >
+# Contributor: Martchus < martchus at gmx dot net >
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+_pkgver=3.6.4
+
+pkgname=mingw-w64-openssl
+pkgver=${_pkgver/[a-z]/.${_pkgver//[0-9.]/}}
+pkgrel=1
+pkgdesc="The Open Source toolkit for cryptography and Transport Layer Security (mingw-w64)"
+arch=('any')
+url='https://www.openssl.org'
+license=('Apache-2.0')
+depends=('mingw-w64-zlib')
+makedepends=('mingw-w64-gcc'
+             'mingw-w64-environment'
+             'perl')
+options=('!strip' 'staticlibs' '!buildflags' '!lto')
+source=("https://github.com/openssl/openssl/releases/download/openssl-${pkgver}/openssl-${pkgver}.tar.gz"{,.asc})
+sha256sums=('9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef'
+            'SKIP')
+validpgpkeys=('EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5'  # OpenSSL OMC <openssl-omc@openssl.org>
+              'BA5473A2B0587B07FB27CF2D216094DFD0CB81EF'  # OpenSSL <openssl@openssl.org>
+              'B146647E45A7B33947AB226B2A2C87D161692D40') # OpenSSL release signing key (Arch's openssl package)
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "${srcdir}/openssl-${_pkgver}"
+  for _target in ${_targets}; do
+    source mingw-env ${_target}
+    if [[ $_target != 'aarch64-w64-mingw32' ]]; then
+      _cross_prefix=--cross-compile-prefix=${_target}-
+      unset CC CXX # those variables conflict with --cross-compile-prefix
+    fi
+    mkdir -p "${srcdir}/build-${_target}" && cp -a "${srcdir}/openssl-${_pkgver}/"* "${srcdir}/build-${_target}" && cd "${srcdir}/build-${_target}"
+    if [[ $_target = 'aarch64-w64-mingw32' ]]; then
+      _mingw=mingwarm64
+    elif [[ $_target = 'x86_64-w64-mingw32' ]]; then
+      _mingw=mingw64
+    else
+      _mingw=mingw
+    fi
+    ./Configure \
+      --prefix=/usr/${_target} \
+      ${_cross_prefix} \
+      -DOPENSSL_NO_CAPIENG \
+      ${_mingw} \
+      threads \
+      shared \
+      no-ssl3-method \
+      zlib-dynamic \
+      "${CFLAGS}"
+    make LIBDIR=lib
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/build-${_target}"
+    make -j1 DESTDIR="${pkgdir}" LIBDIR=lib install_sw
+    install -m644 ms/applink.c "${pkgdir}/usr/${_target}/include/openssl/"
+    find "${pkgdir}/usr/${_target}" -name '*.exe' -exec ${_target}-strip {} \;
+    find "${pkgdir}/usr/${_target}" -name '*.dll' -exec ${_target}-strip --strip-unneeded {} \;
+    find "${pkgdir}/usr/${_target}" -name '*.a' -exec ${_target}-strip -g {} \;
+  done
+  install -Dm644 "${srcdir}/openssl-${_pkgver}/LICENSE.txt" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.txt"
+}
+
+# vim: ts=2 sw=2 et:
+

@@ -1,0 +1,60 @@
+# Maintainer: Stephen Seo <seo.disparate@gmail.com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-raylib
+pkgver=6.0
+pkgrel=2
+pkgdesc="Simple and easy to use game programming library (mingw-w64)"
+arch=('any')
+url="https://www.raylib.com"
+license=('Zlib')
+depends=('mingw-w64-crt')
+makedepends=('ninja' 'mingw-w64-cmake')
+options=('!strip' '!buildflags' 'staticlibs')
+source=("raylib-${pkgver}.tar.gz::https://github.com/raysan5/raylib/archive/refs/tags/${pkgver}.tar.gz"
+        "raylib-enable-jpg.patch")
+sha256sums=('2b3ee1e2120c7a0796b33062c7e9a694dd8a8caa56a96319ac8c8ecf54a90d0b'
+            '416c8dce4d2f9df6c730559cdc620481a9c2e2e0be01b2b9276f8973dbb7f556')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+prepare() {
+  cd "$srcdir"
+  patch -p1 < "$srcdir/raylib-enable-jpg.patch"
+}
+
+build() {
+  for _target in ${_targets}; do
+    for _kind in static shared; do
+      _shared=OFF
+      [[ $_kind == shared ]] && _shared=ON
+      "${_target}-cmake" -S "$srcdir/raylib-${pkgver}" -B "$srcdir/build-${_target}-${_kind}" \
+        -Wno-dev \
+        -D CMAKE_BUILD_TYPE=Release \
+        -D CMAKE_C_FLAGS="$CFLAGS -w" \
+        -D BUILD_SHARED_LIBS=${_shared} \
+        -D PLATFORM=Desktop \
+        -D USE_EXTERNAL_GLFW=OFF \
+        -D BUILD_EXAMPLES=OFF \
+        -G Ninja
+      cmake --build "$srcdir/build-${_target}-${_kind}"
+    done
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    DESTDIR="$pkgdir" cmake --install "$srcdir/build-${_target}-static"
+    DESTDIR="$pkgdir" cmake --install "$srcdir/build-${_target}-shared"
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+    # raylib's cmake leaves Libs.private empty for Windows; static links
+    # need the system libraries the bundled GLFW and raylib call into
+    sed -i 's/^Libs.private:.*/Libs.private: -lopengl32 -lgdi32 -lwinmm/' "$pkgdir"/usr/${_target}/lib/pkgconfig/raylib.pc
+  done
+  install -Dm644 "$srcdir/raylib-${pkgver}/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
+
+# vim: ts=2 sw=2 et:
+

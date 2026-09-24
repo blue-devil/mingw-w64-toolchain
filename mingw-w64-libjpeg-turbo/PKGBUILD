@@ -1,0 +1,47 @@
+# Maintainer:  CloverGit <clovergit@hotmail.com>
+# Contributor: drakkan <nicola.murino at gmail dot com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-libjpeg-turbo
+pkgver=3.2.0
+pkgrel=1
+arch=('any')
+pkgdesc="JPEG image codec with accelerated baseline compression and decompression (mingw-w64)"
+license=('IJG AND BSD-3-Clause AND Zlib')
+depends=('mingw-w64-crt')
+makedepends=('yasm' 'mingw-w64-cmake')
+provides=('mingw-w64-libjpeg')
+conflicts=('mingw-w64-libjpeg' 'mingw-w64-libjpeg6-turbo')
+options=('staticlibs' '!strip' '!buildflags')
+url="https://libjpeg-turbo.org/"
+source=("https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$pkgver/libjpeg-turbo-$pkgver.tar.gz"{,.sig})
+validpgpkeys=('0338C8D8D9FDA62CF9C421BD7EC2DBB6F4DBF434') # The libjpeg-turbo Project (Signing key for official binaries) <information@libjpeg-turbo.org>
+sha256sums=('6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e'
+            'SKIP')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "$srcdir/libjpeg-turbo-$pkgver"
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    ${_target}-cmake -DWITH_JPEG8=ON ..
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "$srcdir/libjpeg-turbo-$pkgver/build-${_target}"
+    make DESTDIR="$pkgdir" install
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+    find "${pkgdir}/usr/${_target}" -name '*.exe' -exec ${_target}-strip --strip-all {} \;
+  done
+  install -Dm644 "$srcdir/libjpeg-turbo-$pkgver/LICENSE.md" "$pkgdir/usr/share/licenses/$pkgname/LICENSE.md"
+}
+
+# vim: ts=2 sw=2 et:
+

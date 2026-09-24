@@ -1,0 +1,61 @@
+# Maintainer: HurricanePootis <hurricanepootis@protonmail.com>
+# Maintainer: seth <getchoo at tuta dot io>
+# Contributor: xantares
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-zstd
+_pkgname=zstd
+pkgver=1.5.7
+pkgrel=2
+pkgdesc="Zstandard - Fast real-time compression algorithm (mingw-w64)"
+url="https://facebook.github.io/zstd/"
+arch=('any')
+license=('BSD-3-Clause OR GPL-2.0-or-later')
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-cmake' 'ninja')
+options=('staticlibs' '!buildflags' '!strip')
+source=("https://github.com/facebook/zstd/releases/download/v${pkgver}/zstd-${pkgver}.tar.gz"{,.sig})
+sha256sums=('eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3'
+            'SKIP')
+validpgpkeys=('4EF4AC63455FC9F4545D9B7DEF8FE99528B52FFD') # Zstandard Release Signing Key <signing@zstd.net>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "${srcdir}/${_pkgname}-${pkgver}"
+
+  export CFLAGS+=' -ffat-lto-objects'
+  export CXXFLAGS+=' -ffat-lto-objects'
+  for _target in ${_targets}; do
+    mkdir -p "build-${_target}" && pushd "build-${_target}"
+    ${_target}-cmake -S ../build/cmake \
+      -DCMAKE_BUILD_TYPE=None \
+      -DCMAKE_INSTALL_PREFIX=/usr/${_target} \
+      -DCMAKE_INSTALL_LIBDIR=lib \
+      -DZSTD_BUILD_CONTRIB=OFF \
+      -DZSTD_BUILD_STATIC=ON \
+      -DZSTD_BUILD_TESTS=OFF \
+      -DZSTD_PROGRAMS_LINK_SHARED=OFF \
+      -DZSTD_BUILD_PROGRAMS=OFF \
+      -GNinja
+    cmake --build ./
+    popd
+  done
+}
+
+package() {
+  cd "${srcdir}/${_pkgname}-${pkgver}"
+
+  for _target in ${_targets}; do
+    pushd "build-${_target}"
+    DESTDIR="${pkgdir}" cmake --install ./
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+    popd
+  done
+  install -Dm644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}/"
+}
+
+# vim: ts=2 sw=2 et:
+

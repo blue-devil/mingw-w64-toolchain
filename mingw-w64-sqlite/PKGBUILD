@@ -1,0 +1,84 @@
+# Maintainer: Martchus <martchus at gmx dot net>
+# Contributor: jazztickets
+# Contributor: Andrew Sun <adsun701 at gmail dot com>
+# Contributor: napa3um <napa3um at gmail dot com>
+# Contributor: Filip Brcic <brcha at gna dot org>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-sqlite
+pkgver=3.53.2
+_srcver=$(echo "$pkgver" | awk -F. '{ printf "%d%02d%02d00", $1, $2, $3 }')
+pkgrel=2
+pkgdesc="A C library that implements an SQL database engine (mingw-w64)"
+arch=('any')
+groups=('mingw-w64')
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-configure' 'tcl')
+options=('!strip' '!buildflags' 'staticlibs')
+license=('LicenseRef-Public-Domain')
+url="https://www.sqlite.org/"
+source=(https://www.sqlite.org/2026/sqlite-src-${_srcver}.zip)
+sha256sums=('cafff764c03f6d720968f746e2f47a986bbf12bf4c18904f1eb131c0b0b592d3')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+_cflags=(
+  -fexceptions
+  -DSQLITE_ENABLE_COLUMN_METADATA=1
+  -DSQLITE_ENABLE_UNLOCK_NOTIFY
+  -DSQLITE_ENABLE_DBSTAT_VTAB=1
+  -DSQLITE_ENABLE_FTS3_PARENTHESIS
+  -DSQLITE_SECURE_DELETE
+  -DSQLITE_ENABLE_STMTVTAB
+  -DSQLITE_ENABLE_STAT4
+  -DSQLITE_MAX_VARIABLE_NUMBER=250000
+  -DSQLITE_MAX_EXPR_DEPTH=10000
+  -DSQLITE_ENABLE_MATH_FUNCTIONS
+  -DSQLITE_USE_MALLOC_H=1
+  -DSQLITE_USE_MSIZE=1
+  -DSQLITE_DISABLE_DIRSYNC=1
+  -fno-strict-aliasing
+)
+
+build() {
+  CFLAGS+=" ${_cflags[*]}" CXXFLAGS+=" ${_cflags[*]}"
+
+  cd "${srcdir}/sqlite-src-${_srcver}"
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+
+    # sqlite's autosetup-based configure rejects '--target=...'; run the
+    # mingw configure wrapper with that option removed
+    bash <(sed 's/--target[^ ]* //' $(command -v "${_target}-configure")) \
+      --enable-session \
+      --enable-fts3 \
+      --disable-tcl \
+      --disable-readline \
+      --fts4 \
+      --fts5 \
+      --rtree \
+      --session \
+      --out-implib \
+      --dll-basename
+
+    make
+    popd
+  done
+}
+
+package() {
+  cd "${srcdir}/sqlite-src-${_srcver}"
+  for _target in ${_targets}; do
+    pushd build-${_target}
+    make DESTDIR="${pkgdir}" install
+    rm -rf "${pkgdir}/usr/${_target}/share"
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.exe
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+    popd
+  done
+  install -Dm644 LICENSE.md "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.md"
+}
+
+# vim: ts=2 sw=2 et:
+

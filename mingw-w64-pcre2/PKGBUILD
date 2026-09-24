@@ -1,0 +1,55 @@
+# Maintainer: Martchus
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+_pkgname=pcre2
+pkgname=mingw-w64-$_pkgname
+pkgver=10.47
+pkgrel=1
+pkgdesc='A library that implements Perl 5-style regular expressions. 2nd version (mingw-w64)'
+arch=('any')
+url='https://github.com/PCRE2Project/pcre2'
+license=('BSD-2-Clause' 'BSD-3-Clause WITH PCRE2-exception')
+makedepends=('mingw-w64-configure')
+depends=('mingw-w64-crt' 'mingw-w64-zlib' 'mingw-w64-bzip2')
+options=('staticlibs' '!strip' '!buildflags')
+source=("https://github.com/PCRE2Project/pcre2/releases/download/${_pkgname}-${pkgver}/${_pkgname}-${pkgver}.tar.bz2"{,.sig})
+sha256sums=('47fe8c99461250d42f89e6e8fdaeba9da057855d06eb7fc08d9ca03fd08d7bc7'
+            'SKIP')
+validpgpkeys=('45F68D54BBE23FB3039B46E59766E084FB0F43D8'  # Philip Hazel <ph10@hermes.cam.ac.uk>
+              'A95536204A3BB489715231282A98E77EB6F24CA8') # Nicholas Wilson <nicholas@nicholaswilson.me.uk>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "${_pkgname}-${pkgver}"
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    ${_target}-configure \
+      --enable-jit \
+      --enable-pcre2-16 \
+      --enable-pcre2-32 \
+      --enable-pcre2grep-libz \
+      --enable-pcre2grep-libbz2
+    make
+    popd
+  done
+}
+
+package() {
+  cd "${_pkgname}-${pkgver}"
+  install -Dm644 LICENCE.md "$pkgdir/usr/share/licenses/$pkgname/LICENCE.md"
+  install -Dm644 deps/sljit/LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE.sljit"
+
+  for _target in ${_targets}; do
+    cd "${srcdir}/${_pkgname}-${pkgver}/build-${_target}"
+    make DESTDIR="$pkgdir" install
+    rm -rf "$pkgdir/usr/${_target}/share/"{man,doc}
+    find "$pkgdir/usr/${_target}" -name '*.exe' -exec ${_target}-strip {} \;
+    find "$pkgdir/usr/${_target}" -name '*.dll' -exec ${_target}-strip --strip-unneeded {} \;
+    find "$pkgdir/usr/${_target}" -name '*.a' -o -name '*.dll' | xargs ${_target}-strip -g
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

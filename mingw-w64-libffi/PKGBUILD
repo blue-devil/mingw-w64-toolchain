@@ -1,0 +1,46 @@
+# Maintainer: drakkan <nicola.murino at gmail dot com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-libffi
+pkgver=3.7.1
+pkgrel=1
+pkgdesc="Portable foreign function interface library (mingw-w64)"
+arch=('any')
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-configure')
+options=('staticlibs' '!buildflags' '!strip')
+license=('MIT')
+url="https://sourceware.org/libffi"
+source=(https://github.com/libffi/libffi/releases/download/v$pkgver/libffi-$pkgver.tar.gz)
+sha256sums=('d5e9a6638ddbd2513ddb54518eb67e4bbe6fa707bcc01c10f6212f0a088d819d')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "${srcdir}/libffi-${pkgver}"
+  unset LDFLAGS
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    ${_target}-configure \
+      --target=${_target} \
+      --enable-pax_emutramp
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/libffi-${pkgver}/build-${_target}"
+    make DESTDIR="${pkgdir}" install
+    rm -f "$pkgdir/usr/${_target}/share/info/dir"
+    find "$pkgdir/usr/${_target}" -name '*.exe' -exec ${_target}-strip {} \;
+    find "$pkgdir/usr/${_target}" -name '*.dll' -exec ${_target}-strip --strip-unneeded {} \;
+    find "$pkgdir/usr/${_target}" -name '*.a' -o -name '*.dll' | xargs ${_target}-strip -g
+  done
+  install -Dm644 "${srcdir}/libffi-${pkgver}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
+
+# vim: ts=2 sw=2 et:
+

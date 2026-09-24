@@ -1,0 +1,20 @@
+pkgbase = mingw-w64-tools
+	pkgdesc = MinGW-w64 utilities: gendef, genidl, genpeimg, widl (host tools)
+	pkgver = 14.0.0
+	pkgrel = 1
+	url = https://www.mingw-w64.org
+	arch = x86_64
+	arch = aarch64
+	groups = mingw-w64
+	license = GPL-3.0-or-later
+	license = LGPL-2.1-or-later
+	depends = glibc
+	options = !libtool
+	options = !emptydirs
+	source = https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v14.0.0.tar.bz2
+	source = https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v14.0.0.tar.bz2.sig
+	validpgpkeys = CAF5641F74F7DFBA88AE205693BDB53CD4EBC740
+	sha512sums = 17378a0e2abbbb688468a78cb0ba261f9001a1bc6e7d0270c24c4b8b13e5c6513e8fb8e617d08102fbc772c288ad81ec3a43ca756ed28f17cc5543f717a8bb6d
+	sha512sums = SKIP
+
+pkgname = mingw-w64-tools

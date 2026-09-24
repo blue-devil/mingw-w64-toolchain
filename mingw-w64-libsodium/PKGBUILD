@@ -1,0 +1,52 @@
+# Maintainer: Wolfgang Pupp <wolfgang.pupp@gmail.com>
+# Maintainer: Martchus <martchus@gmx.net>
+# Contributor: Felix Yan <felixonmars@archlinux.org>
+# Contributor: namelessjon <jonathan.stott@gmail.com>
+# Contributor: Alessio Sergi <asergi at archlinux dot us>
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+_realname=libsodium
+pkgname="mingw-w64-${_realname}"
+pkgver=1.0.20
+pkgrel=2
+pkgdesc="A modern, portable, easy to use crypto library (mingw-w64)"
+arch=('any')
+url="https://github.com/jedisct1/libsodium"
+license=('ISC')
+depends=('mingw-w64-crt')
+options=('!strip' '!buildflags' 'staticlibs')
+makedepends=('mingw-w64-configure')
+source=(https://download.libsodium.org/libsodium/releases/${_realname}-${pkgver}.tar.gz{,.sig})
+sha256sums=('ebb65ef6ca439333c2bb41a0c1990587288da07f6c7fd07cb3a18cc18d30ce19'
+            'SKIP')
+validpgpkeys=('54A2B8892CC3D6A597B92B6C210627AABA709FE1') # Frank Denis (Jedi/Sector One) <pgp@pureftpd.org>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  for _target in ${_targets}; do
+    mkdir -p "${srcdir}"/build-${_target} && cd "${srcdir}"/build-${_target}
+    ${_target}-configure ../${_realname}-${pkgver}
+    make
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}"/build-${_target}
+    make DESTDIR="$pkgdir" install
+
+    ${_target}-strip --strip-unneeded "${pkgdir}"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "${pkgdir}"/usr/${_target}/lib/*.a
+
+    rm -f "${pkgdir}/usr/${_target}/bin/"*.def
+    rm -rf "${pkgdir}/usr/${_target}/share"
+  done
+
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
+
+# vim: ts=2 sw=2 et:
+

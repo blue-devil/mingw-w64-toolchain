@@ -1,0 +1,45 @@
+# Maintainer: Blaadick
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname="mingw-w64-nlohmann-json"
+pkgver="3.12.0"
+pkgrel=4
+pkgdesc="Header-only JSON library for Modern C++ (mingw-w64)"
+url="https://github.com/nlohmann/json"
+license=('MIT')
+arch=('any')
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-cmake')
+options=('!buildflags' '!strip' 'staticlibs')
+source=("json-${pkgver}.tar.gz::https://github.com/nlohmann/json/archive/v${pkgver}.tar.gz")
+sha256sums=('4b92eb0c06d10683f7447ce9406cb97cd4b453be18d7279320f7b2f025c10187')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "json-$pkgver"
+
+  for _target in ${_targets}; do
+    ${_target}-cmake \
+      -B "build-${_target}" \
+      -S . \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DJSON_BuildTests=OFF \
+      -DJSON_MultipleHeaders=ON
+
+    cmake --build "build-${_target}" --parallel
+  done
+}
+
+package() {
+  cd "json-$pkgver"
+
+  for _target in ${_targets}; do
+    DESTDIR="$pkgdir" cmake --install "build-${_target}"
+  done
+  install -Dm644 LICENSE.MIT "$pkgdir/usr/share/licenses/$pkgname/LICENSE.MIT"
+}
+
+# vim: ts=2 sw=2 et:
+
