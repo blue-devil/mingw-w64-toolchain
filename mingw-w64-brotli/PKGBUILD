@@ -1,0 +1,44 @@
+# Maintainer: drakkan <nicola.murino at gmail dot com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-brotli
+_pkgname=brotli
+pkgver=1.2.0
+pkgrel=1
+pkgdesc='Brotli compression library (mingw-w64)'
+arch=('any')
+license=('MIT')
+url='https://github.com/google/brotli'
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-cmake')
+options=('!buildflags' '!strip' 'staticlibs')
+source=("${_pkgname}-${pkgver}.tar.gz::https://github.com/google/brotli/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('816c96e8e8f193b40151dad7e8ff37b1221d019dbcb9c35cd3fadbfe6477dfec')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  for _target in ${_targets}; do
+    ${_target}-cmake -S "${_pkgname}-${pkgver}" -B "build-${_target}-static" -DBUILD_SHARED_LIBS=OFF
+    cmake --build "build-${_target}-static"
+    ${_target}-cmake -S "${_pkgname}-${pkgver}" -B "build-${_target}" -DBUILD_SHARED_LIBS=ON
+    cmake --build "build-${_target}"
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    # static libraries first, the shared build then adds the DLLs and import libraries
+    DESTDIR="${pkgdir}" cmake --install "build-${_target}-static"
+    DESTDIR="${pkgdir}" cmake --install "build-${_target}"
+    find "${pkgdir}/usr/${_target}" -name '*.exe' -exec ${_target}-strip --strip-all {} \;
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+    sed -i 's| -R${libdir}||g' "${pkgdir}"/usr/${_target}/lib/pkgconfig/*.pc
+  done
+  install -Dm644 "${_pkgname}-${pkgver}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
+
+# vim: ts=2 sw=2 et:
+

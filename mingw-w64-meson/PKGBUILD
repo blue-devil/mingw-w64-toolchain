@@ -1,0 +1,48 @@
+# Maintainer: Martchus <martchus@gmx.net>
+# Contributor: drakkan <nicola.murino at gmail dot com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-meson
+pkgver=1
+pkgrel=26
+arch=('any')
+pkgdesc="Meson wrapper for MinGW (mingw-w64)"
+depends=('meson' 'mingw-w64-gcc' 'mingw-w64-pkg-config')
+makedepends=('mingw-w64-environment')
+optdepends=('mingw-w64-wine: Set NEED_WINE env variable in your PKGBUILD to use wine support in meson')
+license=('GPL')
+url="https://fedoraproject.org/wiki/MinGW"
+source=("toolchain_generator.py"
+        "meson-mingw-wrapper")
+sha256sums=('a04518bdc84473f5c4f3cecb2c301d9a367909d724687256b61c40eff2eb3430'
+            '2defbbb1f43e13815b2a8a8327bd14aad175219eb4ff9935d5bf9d46b9f8728a')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  for _target in ${_targets}; do
+    unset CPPFLAGS
+    unset CFLAGS
+    unset CXXFLAGS
+    unset LDFLAGS
+    source mingw-env ${_target}
+    python3 toolchain_generator.py --arch ${_target} --output-file toolchain-${_target}.meson
+    python3 toolchain_generator.py --arch ${_target} --output-file toolchain-${_target}-wine.meson --need-exe-wrapper
+    sed "s|@TRIPLE@|${_target}|g;" meson-mingw-wrapper > ${_target}-meson
+  done
+}
+
+package() {
+  install -d "${pkgdir}"/usr/bin
+  install -d "${pkgdir}"/usr/share/mingw
+  install -m755 "${srcdir}/toolchain_generator.py" "$pkgdir/usr/bin/meson-cross-file-generator"
+  for _target in ${_targets}; do
+    install -m755 "${srcdir}/${_target}-meson" "$pkgdir/usr/bin/${_target}-meson"
+    install -m644 toolchain-${_target}.meson "${pkgdir}"/usr/share/mingw/
+    install -m644 toolchain-${_target}-wine.meson "${pkgdir}"/usr/share/mingw/
+  done
+}
+
+# vim: ts=2 sw=2 et:
+

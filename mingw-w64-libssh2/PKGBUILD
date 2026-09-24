@@ -1,0 +1,57 @@
+# Maintainer: Patrick Northon <northon_patrick3@yahoo.ca>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+_pkgname=libssh2
+pkgname=mingw-w64-${_pkgname}
+pkgver=1.11.1
+pkgrel=2
+pkgdesc="A library implementing the SSH2 protocol as defined by Internet Drafts (mingw-w64)"
+arch=('any')
+url="https://www.libssh2.org"
+license=('BSD-3-Clause')
+makedepends=('mingw-w64-cmake')
+depends=('mingw-w64-crt' 'mingw-w64-openssl' 'mingw-w64-zlib')
+options=('staticlibs' '!strip' '!buildflags')
+source=("${url}/download/${_pkgname}-${pkgver}.tar.gz"{,.asc}
+        "libssh2-1.11.1-CVE-2025-15661.patch")
+sha256sums=('d9ec76cbe34db98eec3539fe2c899d26b0c837cb3eb466a56b0f109cabf658f7'
+            'SKIP'
+            'c4a6c42695118e98481fc9161a1586572b9c93a3506c3169d659dcfddf604530')
+validpgpkeys=('27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2') # Daniel Stenberg <daniel@haxx.se>
+
+_srcdir="${_pkgname}-${pkgver}"
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+_flags=( -Wno-dev -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_CXX_FLAGS_RELEASE='-DNDEBUG'
+  -DBUILD_EXAMPLES=OFF
+  -DBUILD_TESTING=OFF
+  -DENABLE_ZLIB_COMPRESSION=ON )
+
+prepare() {
+  cd "${_srcdir}"
+  patch -Np1 -i "${srcdir}/libssh2-1.11.1-CVE-2025-15661.patch"
+}
+
+build() {
+  for _target in ${_targets}; do
+    ${_target}-cmake -S "${_srcdir}" -B "build-${_target}-static" "${_flags[@]}" -DBUILD_SHARED_LIBS=OFF
+    cmake --build "build-${_target}-static"
+    ${_target}-cmake -S "${_srcdir}" -B "build-${_target}" "${_flags[@]}" -DBUILD_SHARED_LIBS=ON
+    cmake --build "build-${_target}"
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    DESTDIR="${pkgdir}" cmake --install "build-${_target}-static"
+    DESTDIR="${pkgdir}" cmake --install "build-${_target}"
+    rm -rf "$pkgdir"/usr/${_target}/share
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+  done
+  install -Dm644 "${_srcdir}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+}
+
+# vim: ts=2 sw=2 et:
+

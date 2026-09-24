@@ -1,0 +1,18 @@
+pkgbase = mingw-w64-rlimgui
+	pkgdesc = Dear ImGui backend for raylib, as a static library (mingw-w64)
+	pkgver = 6.0
+	pkgrel = 1
+	url = https://github.com/raylib-extras/rlImGui
+	arch = any
+	license = Zlib
+	makedepends = mingw-w64-gcc
+	makedepends = mingw-w64-pkg-config
+	depends = mingw-w64-imgui
+	depends = mingw-w64-raylib
+	options = !buildflags
+	options = staticlibs
+	options = !strip
+	source = rlImGui-Raylib_6_0.tar.gz::https://github.com/raylib-extras/rlImGui/archive/refs/tags/Raylib_6_0.tar.gz
+	sha256sums = 2d2385f42595ca1f5fd10434c1d34b4392994ba28105454ab88bc808a9bafd33
+
+pkgname = mingw-w64-rlimgui

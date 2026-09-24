@@ -1,0 +1,50 @@
+# Maintainer: CloverGit <clovergit@hotmail.com>
+# Contributor: drakkan <nicola.murino at gmail dot com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-libpsl
+_pkgname=libpsl
+pkgver=0.21.5
+pkgrel=2
+pkgdesc='Public Suffix List library (mingw-w64)'
+url='https://github.com/rockdaboot/libpsl'
+arch=('any')
+license=('MIT')
+depends=('mingw-w64-libidn2' 'mingw-w64-libunistring')
+makedepends=('mingw-w64-meson' 'ninja' 'python')
+options=('staticlibs' '!strip' '!buildflags')
+source=("https://github.com/rockdaboot/libpsl/releases/download/${pkgver}/${_pkgname}-${pkgver}.tar.gz"{,.sig})
+sha256sums=('1dcc9ceae8b128f3c0b3f654decd0e1e891afc6ff81098f227ef260449dae208'
+            'SKIP')
+validpgpkeys=('1CB27DBC98614B2D5841646D08302DB6A2670428') # Tim Rühsen <tim.ruehsen@gmx.de>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "${srcdir}/${_pkgname}-${pkgver}"
+  for _target in ${_targets}; do
+    ${_target}-meson \
+      -D docs=false \
+      -D tests=false \
+      -D runtime=libidn2 \
+      --default-library=both \
+      "build-${_target}"
+    ninja -C "build-${_target}"
+  done
+}
+
+package() {
+  cd "${srcdir}/${_pkgname}-${pkgver}"
+  for _target in ${_targets}; do
+    DESTDIR="${pkgdir}" ninja -C "build-${_target}" install
+    find "$pkgdir/usr/${_target}" -name '*.exe' -exec ${_target}-strip {} \;
+    find "$pkgdir/usr/${_target}" -name '*.dll' -exec ${_target}-strip --strip-unneeded {} \;
+    find "$pkgdir/usr/${_target}" -name '*.a' -exec ${_target}-strip -g {} \;
+    rm -rf "$pkgdir/usr/${_target}/share"
+  done
+  install -Dm644 COPYING "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+}
+
+# vim: ts=2 sw=2 et:
+

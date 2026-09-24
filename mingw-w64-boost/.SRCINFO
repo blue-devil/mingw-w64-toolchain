@@ -1,0 +1,21 @@
+pkgbase = mingw-w64-boost
+	pkgdesc = Free peer-reviewed portable C++ source libraries (mingw-w64)
+	pkgver = 1.92.0
+	pkgrel = 2
+	url = https://www.boost.org/
+	arch = any
+	license = BSL-1.0
+	makedepends = mingw-w64-gcc
+	makedepends = mingw-w64-environment
+	depends = mingw-w64-zlib
+	depends = mingw-w64-zstd
+	depends = mingw-w64-bzip2
+	options = !strip
+	options = !buildflags
+	options = staticlibs
+	source = https://archives.boost.io/release/1.92.0/source/boost_1_92_0.tar.bz2
+	source = cobalt-cba2768.patch
+	sha256sums = 5c1d40cb8e19adbf740a4ec2da35b3e58f3f5804b1dce44deb53df72193cbc6c
+	sha256sums = fa8f535edfa0b51518b41f72293d8a998779bf640918abd74ebaa4cb474fd4e8
+
+pkgname = mingw-w64-boost

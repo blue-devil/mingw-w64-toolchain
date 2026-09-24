@@ -1,0 +1,21 @@
+From cba276884d3fc5509475910283091a0031970f1f Mon Sep 17 00:00:00 2001
+From: Klemens Morgenstern <klemens.d.morgenstern@gmail.com>
+Date: Sun, 12 Jul 2026 14:55:04 +0800
+Subject: [PATCH] Windows gcc links ws2_32
+
+---
+ build/Jamfile | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/build/Jamfile b/build/Jamfile
+index 7c304bd3..2e926928 100644
+--- a/build/Jamfile
++++ b/build/Jamfile
+@@ -25,6 +25,7 @@ project : requirements
+   <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+   <toolset>msvc:<cxxflags>/bigobj
+   <target-os>windows:<define>WIN32_LEAN_AND_MEAN
++  <target-os>windows,<toolset>gcc:<library>ws2_32
+   <target-os>linux:<linkflags>-lpthread
+   : source-location ../src
+   : common-requirements <library>$(boost_dependencies)

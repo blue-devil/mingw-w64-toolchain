@@ -1,0 +1,87 @@
+# Maintainer: Maks Verver <maks@verver.ch>
+# Contributor: drakkan <nicola.murino at gmail dot com>
+# Contributor: Andrew Sun <adsun701 at gmail dot com>
+# Contributor: ant32 <antreimer at gmail dot com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-curl
+pkgver=8.22.0
+pkgrel=1
+pkgdesc="An URL retrieval utility and library (mingw-w64)"
+arch=('any')
+url="https://curl.se"
+license=('curl')
+depends=('mingw-w64-crt'
+         'mingw-w64-libidn2'
+         'mingw-w64-libpsl'
+         'mingw-w64-libssh2'
+         'mingw-w64-openssl'
+         'mingw-w64-libnghttp2'
+         'mingw-w64-zstd'
+         'mingw-w64-brotli'
+         'mingw-w64-zlib')
+makedepends=('mingw-w64-configure')
+options=('staticlibs' '!strip' '!buildflags')
+source=("https://curl.se/download/curl-${pkgver}.tar.xz"{,.asc}
+        'nghttp2-static.patch')
+sha256sums=('f7ef3ae8a22e521f289803fe93543eb64c329b58aa73a9e224dfd915a2a5f4f7'
+            'SKIP'
+            '9c49a8e082394114c49694bf86da118dcd1860791f3cfe23a8e3ac19bf4660bb')
+validpgpkeys=('27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2') # Daniel Stenberg <daniel@haxx.se>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+_configure_args=(
+  --with-openssl
+  --with-schannel
+  --with-default-ssl-backend=openssl
+  --enable-ipv6
+  --with-libidn2
+  --with-libssh2
+  --with-libpsl
+  --with-brotli
+  --with-zstd
+  --with-nghttp2
+  --without-ca-bundle
+  --without-random
+)
+
+prepare() {
+  cd "curl-${pkgver}"
+  patch -Np1 -i "${srcdir}/nghttp2-static.patch"
+  autoreconf -vfi
+}
+
+build() {
+  cd "curl-${pkgver}"
+  export CHOST=$(./config.guess)
+  for _target in ${_targets}; do
+    mkdir -p build-${_target}-static && pushd build-${_target}-static
+    ${_target}-configure "${_configure_args[@]}" \
+      --enable-static --disable-shared ..
+    make
+    popd
+    mkdir -p build-${_target} && pushd build-${_target}
+    ${_target}-configure "${_configure_args[@]}" \
+      --disable-static --enable-shared ..
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/curl-${pkgver}/build-${_target}-static"
+    make DESTDIR="${pkgdir}" install
+    cd "${srcdir}/curl-${pkgver}/build-${_target}"
+    make DESTDIR="${pkgdir}" install
+    rm -rf "${pkgdir}/usr/${_target}/share"
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.exe
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+  done
+  install -Dm644 "${srcdir}/curl-${pkgver}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING"
+}
+
+# vim: ts=2 sw=2 et:
+

@@ -1,0 +1,107 @@
+# Maintainer: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-imgui
+pkgver=1.92.9
+pkgrel=1
+pkgdesc="Bloat-free immediate mode GUI for C++ with SDL2, SDL3, OpenGL, Win32 and Direct3D 11 backends as static libraries (mingw-w64)"
+arch=('any')
+url="https://github.com/ocornut/imgui"
+license=('MIT')
+depends=('mingw-w64-sdl2' 'mingw-w64-sdl3')
+makedepends=('mingw-w64-gcc' 'mingw-w64-pkg-config')
+options=('!buildflags' 'staticlibs' '!strip')
+source=("imgui-${pkgver}.tar.gz::https://github.com/ocornut/imgui/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('af97ed649182c39314320514a672b82008ab462b9293fe23d37b30bfa5d05519')
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+_core=(imgui.cpp imgui_demo.cpp imgui_draw.cpp imgui_tables.cpp imgui_widgets.cpp misc/cpp/imgui_stdlib.cpp)
+_backends=(opengl2 opengl3 win32 dx11 sdl2 sdlrenderer2 sdl3 sdlrenderer3)
+
+# pkg-config module whose headers a backend needs (none: Windows SDK only)
+_backend_pc() {
+  case $1 in
+    sdl2|sdlrenderer2) echo sdl2 ;;
+    sdl3|sdlrenderer3) echo sdl3 ;;
+  esac
+}
+
+# Windows libraries a backend links against
+_backend_libs() {
+  case $1 in
+    opengl2|opengl3) echo -lopengl32 ;;
+    win32) echo -ldwmapi -lgdi32 -limm32 ;;
+    dx11) echo -ld3d11 -ld3dcompiler -ldxgi ;;
+  esac
+}
+
+build() {
+  cd "imgui-${pkgver}"
+  for _target in ${_targets}; do
+    local _out="${srcdir}/build-${_target}"
+    local _cxx="${_target}-g++"
+    local _flags=(-O2 -std=c++17 -I. -Ibackends)
+    mkdir -p "${_out}"
+    local _objs=()
+    for _src in "${_core[@]}"; do
+      ${_cxx} "${_flags[@]}" -c "${_src}" -o "${_out}/$(basename "${_src%.cpp}").o"
+      _objs+=("${_out}/$(basename "${_src%.cpp}").o")
+    done
+    ${_target}-ar rcs "${_out}/libimgui.a" "${_objs[@]}"
+    for _b in "${_backends[@]}"; do
+      local _pc=$(_backend_pc "${_b}") _extra=()
+      if [[ -n ${_pc} ]]; then
+        _extra=($(${_target}-pkg-config --cflags "${_pc}"))
+      fi
+      ${_cxx} "${_flags[@]}" "${_extra[@]}" -c "backends/imgui_impl_${_b}.cpp" -o "${_out}/imgui_impl_${_b}.o"
+      ${_target}-ar rcs "${_out}/libimgui_impl_${_b}.a" "${_out}/imgui_impl_${_b}.o"
+    done
+  done
+}
+
+package() {
+  cd "imgui-${pkgver}"
+  for _target in ${_targets}; do
+    local _prefix="${pkgdir}/usr/${_target}"
+    local _inc="${_prefix}/include/imgui"
+    install -d "${_inc}/backends" "${_inc}/misc/cpp" "${_prefix}/lib/pkgconfig"
+    install -m644 imgui.h imconfig.h imgui_internal.h imstb_rectpack.h imstb_textedit.h imstb_truetype.h "${_inc}/"
+    install -m644 misc/cpp/imgui_stdlib.h "${_inc}/misc/cpp/"
+    for _b in "${_backends[@]}"; do
+      install -m644 "backends/imgui_impl_${_b}.h" "${_inc}/backends/"
+    done
+    install -m644 backends/imgui_impl_opengl3_loader.h "${_inc}/backends/"
+    install -m644 "${srcdir}/build-${_target}"/*.a "${_prefix}/lib/"
+    ${_target}-strip -g "${_prefix}"/lib/libimgui*.a
+
+    cat > "${_prefix}/lib/pkgconfig/imgui.pc" <<EOF
+prefix=/usr/${_target}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: imgui
+Description: Dear ImGui, immediate mode GUI for C++ (core, static)
+Version: ${pkgver}
+Cflags: -I\${includedir}/imgui -I\${includedir}/imgui/backends
+Libs: -L\${libdir} -limgui -limm32
+EOF
+    for _b in "${_backends[@]}"; do
+      cat > "${_prefix}/lib/pkgconfig/imgui_impl_${_b}.pc" <<EOF
+prefix=/usr/${_target}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: imgui_impl_${_b}
+Description: Dear ImGui ${_b} backend (static)
+Version: ${pkgver}
+Requires: imgui $(_backend_pc "${_b}")
+Cflags: -I\${includedir}/imgui/backends
+Libs: -L\${libdir} -limgui_impl_${_b} $(_backend_libs "${_b}")
+EOF
+    done
+  done
+  install -Dm644 LICENSE.txt "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.txt"
+}
+
+# vim: ts=2 sw=2 et:
+

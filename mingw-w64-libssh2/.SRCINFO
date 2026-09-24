@@ -1,0 +1,23 @@
+pkgbase = mingw-w64-libssh2
+	pkgdesc = A library implementing the SSH2 protocol as defined by Internet Drafts (mingw-w64)
+	pkgver = 1.11.1
+	pkgrel = 2
+	url = https://www.libssh2.org
+	arch = any
+	license = BSD-3-Clause
+	makedepends = mingw-w64-cmake
+	depends = mingw-w64-crt
+	depends = mingw-w64-openssl
+	depends = mingw-w64-zlib
+	options = staticlibs
+	options = !strip
+	options = !buildflags
+	source = https://www.libssh2.org/download/libssh2-1.11.1.tar.gz
+	source = https://www.libssh2.org/download/libssh2-1.11.1.tar.gz.asc
+	source = libssh2-1.11.1-CVE-2025-15661.patch
+	validpgpkeys = 27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2
+	sha256sums = d9ec76cbe34db98eec3539fe2c899d26b0c837cb3eb466a56b0f109cabf658f7
+	sha256sums = SKIP
+	sha256sums = c4a6c42695118e98481fc9161a1586572b9c93a3506c3169d659dcfddf604530
+
+pkgname = mingw-w64-libssh2

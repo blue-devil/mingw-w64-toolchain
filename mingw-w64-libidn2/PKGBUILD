@@ -1,0 +1,47 @@
+# Maintainer: drakkan <nicola.murino at gmail dot com>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-libidn2
+pkgver=2.3.8
+pkgrel=1
+pkgdesc="A free software implementation of IDNA2008 (mingw-w64)"
+arch=('any')
+url="https://www.gnu.org/software/libidn/"
+license=('GPL-3.0-or-later OR LGPL-3.0-or-later')
+makedepends=('mingw-w64-configure')
+depends=('mingw-w64-crt' 'mingw-w64-libunistring' 'mingw-w64-libiconv')
+options=('staticlibs' '!strip' '!buildflags')
+source=("https://ftp.gnu.org/gnu/libidn/libidn2-${pkgver}.tar.gz"{,.sig})
+sha256sums=('f557911bf6171621e1f72ff35f5b1825bb35b52ed45325dcdee931e5d3c0787a'
+            'SKIP')
+validpgpkeys=('B1D2BD1375BECB784CF4F8C4D73CF638C53C06BE') # Simon Josefsson <simon@josefsson.org>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "${srcdir}/libidn2-${pkgver}"
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    ${_target}-configure --disable-nls --disable-doc
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/libidn2-${pkgver}/build-${_target}"
+    make DESTDIR="$pkgdir" install
+    rm -f "$pkgdir"/usr/${_target}/bin/*.exe
+    rm -rf "$pkgdir"/usr/${_target}/share
+    ${_target}-strip --strip-unneeded "$pkgdir"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "$pkgdir"/usr/${_target}/lib/*.a
+    # gnulib emits -R (an ELF rpath flag the mingw gcc driver rejects); keep the static link order unistring before iconv
+    sed -i 's|^Libs.private:.*|Libs.private: -lunistring -liconv|' "$pkgdir"/usr/${_target}/lib/pkgconfig/libidn2.pc
+  done
+  install -Dm644 "${srcdir}/libidn2-${pkgver}/COPYING.LESSERv3" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING.LESSERv3"
+}
+
+# vim: ts=2 sw=2 et:
+

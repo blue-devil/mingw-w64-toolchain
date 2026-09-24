@@ -1,0 +1,47 @@
+# Maintainer: pingplug < aur at pingplug dot me >
+# Contributor: Schala Zeal < schalaalexiazeal at gmail dot com >
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-libunistring
+pkgver=1.4.2
+pkgrel=1
+pkgdesc="Library for manipulating Unicode strings and C strings (mingw-w64)"
+arch=('any')
+url="https://www.gnu.org/software/libunistring/"
+license=('LGPL-3.0-or-later OR GPL-2.0-or-later')
+depends=('mingw-w64-crt' 'mingw-w64-libiconv')
+makedepends=('mingw-w64-configure')
+options=('!strip' 'staticlibs' '!buildflags')
+source=("https://ftp.gnu.org/gnu/libunistring/libunistring-${pkgver}.tar.xz"{,.sig})
+sha256sums=('5b46e74377ed7409c5b75e7a96f95377b095623b689d8522620927964a41499c'
+            'SKIP')
+validpgpkeys=('E0FFBD975397F77A32AB76ECB6301D9E1BBEAC08'  # Bruno Haible (Free Software Development) <bruno@clisp.org>
+              '9001B85AF9E1B83DF1BDA942F5BE8B267C6A406D') # Bruno Haible (Open Source Development) <bruno@clisp.org>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  cd "${srcdir}/libunistring-${pkgver}"
+  for _target in ${_targets}; do
+    mkdir -p build-${_target} && pushd build-${_target}
+    ${_target}-configure \
+      --enable-threads=win32
+    make
+    popd
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    cd "${srcdir}/libunistring-${pkgver}/build-${_target}"
+    make DESTDIR="${pkgdir}" install
+    find "${pkgdir}/usr/${_target}" -name '*.dll' -exec ${_target}-strip --strip-unneeded {} \;
+    find "${pkgdir}/usr/${_target}" -name '*.a' -o -name '*.dll' | xargs ${_target}-strip -g
+    rm -rf "${pkgdir}/usr/${_target}/share"
+  done
+  install -Dm644 "${srcdir}/libunistring-${pkgver}/COPYING.LIB" "${pkgdir}/usr/share/licenses/${pkgname}/COPYING.LIB"
+}
+
+# vim: ts=2 sw=2 et:
+

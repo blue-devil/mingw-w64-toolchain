@@ -1,0 +1,44 @@
+# Maintainer: Vaporeon <vaporeon@vaporeon.io>
+# Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
+
+pkgname=mingw-w64-sdl3
+pkgver=3.4.16
+pkgrel=1
+pkgdesc="A library for portable low-level access to a video framebuffer, audio output, mouse, and keyboard (Version 3) (mingw-w64)"
+url="https://libsdl.org"
+arch=('any')
+license=('Zlib')
+depends=('mingw-w64-crt')
+makedepends=('mingw-w64-cmake' 'ninja')
+options=('!debug' '!buildflags' '!strip' 'staticlibs')
+source=("https://github.com/libsdl-org/SDL/releases/download/release-${pkgver}/SDL3-${pkgver}.tar.gz"{,.sig})
+sha256sums=('7322236cd12090c3eb40b9728be4d49c76f66ad17d04369584d4ecad5cf77c68'
+            'SKIP')
+validpgpkeys=('0900104363B4C9D4223DE149D913FE7D4B61D39B'  # Sam Lantinga <slouken@libsdl.org>
+              '1528635D8053A57F77D1E08630A59377A7763BE6') # Sam Lantinga <slouken@libsdl.org>
+
+# Windows targets to build. aarch64-w64-mingw32 is experimental (see README.EN.md).
+_targets="${MINGW_W64_TARGETS:-i686-w64-mingw32 x86_64-w64-mingw32}"
+
+build() {
+  for _target in ${_targets}; do
+    _opts=("-DCMAKE_INSTALL_PREFIX=/usr/${_target}" '-DCMAKE_BUILD_TYPE=None' '-DNDEBUG=ON')
+    ${_target}-cmake -S SDL3-${pkgver} -B build/${_target}-static -G Ninja -DBUILD_SHARED_LIBS=OFF "${_opts[@]}"
+    ${_target}-cmake -S SDL3-${pkgver} -B build/${_target} -G Ninja -DBUILD_SHARED_LIBS=ON "${_opts[@]}"
+    cmake --build build/${_target}-static
+    cmake --build build/${_target}
+  done
+}
+
+package() {
+  for _target in ${_targets}; do
+    DESTDIR="${pkgdir}" cmake --install build/${_target}-static
+    DESTDIR="${pkgdir}" cmake --install build/${_target}
+    ${_target}-strip --strip-unneeded "${pkgdir}"/usr/${_target}/bin/*.dll
+    ${_target}-strip -g "${pkgdir}"/usr/${_target}/lib/*.a
+  done
+  install -Dm644 SDL3-${pkgver}/LICENSE.txt "${pkgdir}/usr/share/licenses/$pkgname/LICENSE"
+}
+
+# vim: ts=2 sw=2 et:
+
