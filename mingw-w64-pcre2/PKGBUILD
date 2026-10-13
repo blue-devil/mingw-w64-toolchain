@@ -3,7 +3,7 @@
 
 _pkgname=pcre2
 pkgname=mingw-w64-$_pkgname
-pkgver=10.47
+pkgver=10.49
 pkgrel=1
 pkgdesc='A library that implements Perl 5-style regular expressions. 2nd version (mingw-w64)'
 arch=('any')
@@ -13,7 +13,7 @@ makedepends=('mingw-w64-configure')
 depends=('mingw-w64-crt' 'mingw-w64-zlib' 'mingw-w64-bzip2')
 options=('staticlibs' '!strip' '!buildflags')
 source=("https://github.com/PCRE2Project/pcre2/releases/download/${_pkgname}-${pkgver}/${_pkgname}-${pkgver}.tar.bz2"{,.sig})
-sha256sums=('47fe8c99461250d42f89e6e8fdaeba9da057855d06eb7fc08d9ca03fd08d7bc7'
+sha256sums=('53c156e1ba416a20da8e65395daa132da0d80e76910424caca3fcdae7831d384'
             'SKIP')
 validpgpkeys=('45F68D54BBE23FB3039B46E59766E084FB0F43D8'  # Philip Hazel <ph10@hermes.cam.ac.uk>
               'A95536204A3BB489715231282A98E77EB6F24CA8') # Nicholas Wilson <nicholas@nicholaswilson.me.uk>
