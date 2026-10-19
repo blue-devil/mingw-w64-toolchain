@@ -5,7 +5,7 @@
 # Contributor: Blue DeviL // SCT <bluedevil [dot] SCT [at] proton [dot] me>
 
 pkgname=mingw-w64-curl
-pkgver=8.22.0
+pkgver=8.23.0
 pkgrel=1
 pkgdesc="An URL retrieval utility and library (mingw-w64)"
 arch=('any')
@@ -24,7 +24,7 @@ makedepends=('mingw-w64-configure')
 options=('staticlibs' '!strip' '!buildflags')
 source=("https://curl.se/download/curl-${pkgver}.tar.xz"{,.asc}
         'nghttp2-static.patch')
-sha256sums=('f7ef3ae8a22e521f289803fe93543eb64c329b58aa73a9e224dfd915a2a5f4f7'
+sha256sums=('8dadd7d2536a314f982ad05a651b713f426bf7d02cc2c76cffb9796f2218e6c5'
             'SKIP'
             '9c49a8e082394114c49694bf86da118dcd1860791f3cfe23a8e3ac19bf4660bb')
 validpgpkeys=('27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2') # Daniel Stenberg <daniel@haxx.se>
